@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mail Merge Studio</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f6f8; color: #1a1a1a; font-size: 14px; }
+  .app { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { color: #6b7280; margin: 0 0 24px; font-size: 14px; }
+  .steps { display: flex; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .step-tab { flex: 1; padding: 12px 6px; font-size: 12px; color: #6b7280; background: none; border: none; cursor: pointer; border-right: 1px solid #e5e7eb; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .step-tab:last-child { border-right: none; }
+  .step-tab.active { background: #fff; color: #1a1a1a; font-weight: 600; }
+  .step-tab.done { background: #f0fdf4; color: #16a34a; }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #e5e7eb; color: #6b7280; }
+  .step-tab.active .step-num { background: #1d4ed8; color: #fff; }
+  .step-tab.done .step-num { background: #16a34a; color: #fff; }
+  .panel { display: none; } .panel.active { display: block; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin: 0 0 12px; }
+  .upload-zone { border: 2px dashed #d1d5db; border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; background: #f9fafb; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: #3b82f6; background: #eff6ff; }
+  .upload-zone .icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-zone h3 { margin: 0 0 6px; font-size: 15px; }
+  .upload-zone p { margin: 0; font-size: 13px; color: #6b7280; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: #f8faff; border: 1px solid #dbeafe; border-radius: 10px; padding: 14px 16px; }
+  .stat-val { font-size: 24px; font-weight: 700; color: #1d4ed8; margin: 0 0 2px; }
+  .stat-lbl { font-size: 12px; color: #6b7280; margin: 0; }
+  .table-wrap { overflow-x: auto; max-height: 220px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f9fafb; padding: 8px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid #e5e7eb; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+  td { padding: 7px 12px; border-bottom: 1px solid #f3f4f6; }
+  tr:last-child td { border-bottom: none; } tr:hover td { background: #f9fafb; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 3px; padding: 8px 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px 8px 0 0; border-bottom: none; }
+  .tb-btn { padding: 5px 9px; font-size: 13px; background: #fff; border: 1px solid #e5e7eb; border-radius: 5px; cursor: pointer; color: #374151; line-height: 1; }
+  .tb-btn:hover { background: #f0f0f0; }
+  .tb-sep { width: 1px; background: #e5e7eb; margin: 3px 2px; }
+  .editor { min-height: 200px; padding: 14px 16px; outline: none; font-size: 14px; line-height: 1.8; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; }
+  .editor:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .editor img { max-width: 100%; border-radius: 6px; }
+  .merge-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .mtag { padding: 4px 11px; font-size: 12px; font-family: monospace; border: 1px solid #bfdbfe; border-radius: 20px; cursor: pointer; color: #1d4ed8; background: #eff6ff; }
+  .mtag:hover { background: #dbeafe; }
+  input[type=text], input[type=email], textarea, select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: #fff; color: #1a1a1a; }
+  input:focus, textarea:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  label.lbl { font-size: 12px; font-weight: 500; color: #374151; display: block; margin-bottom: 4px; }
+  .btn { padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 1px solid #d1d5db; background: #fff; color: #374151; }
+  .btn:hover { background: #f3f4f6; } .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+  .btn-primary:hover:not(:disabled) { background: #1e40af; }
+  .btn-success { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .btn-danger { background: #dc2626; color: #fff; border-color: #dc2626; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .preview-email { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+  .preview-header { background: #f9fafb; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+  .preview-body { padding: 18px 20px; min-height: 200px; background: #fff; line-height: 1.7; }
+  .preview-body img { max-width: 100%; border-radius: 6px; }
+  .progress-bar { height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin: 10px 0; }
+  .progress-fill { height: 100%; background: #16a34a; border-radius: 3px; transition: width 0.3s; }
+  .send-log { max-height: 220px; overflow-y: auto; font-size: 13px; font-family: monospace; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; background: #f9fafb; }
+  .log-line { padding: 3px 0; border-bottom: 1px solid #f3f4f6; display: flex; gap: 8px; align-items: flex-start; word-break: break-all; }
+  .log-line:last-child { border-bottom: none; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-blue { background: #eff6ff; color: #1d4ed8; }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 8px; flex-wrap: wrap; }
+  .sig-editor { min-height: 80px; padding: 10px 12px; outline: none; font-size: 13px; line-height: 1.6; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; background: #fff; }
+  .file-chosen { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; margin-top: 12px; font-size: 13px; color: #16a34a; }
+  .error-box { padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; font-size: 13px; margin-top: 8px; }
+  .hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+  @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } .stat-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>&#9993; Mail Merge Studio</h1>
+  <p class="subtitle">Send personalized emails via Microsoft 365 / Graph API</p>
+
+  <div class="steps">
+    <button class="step-tab active" onclick="goStep(0)"><span class="step-num" id="n0">1</span> Contacts</button>
+    <button class="step-tab" onclick="goStep(1)"><span class="step-num" id="n1">2</span> Compose</button>
+    <button class="step-tab" onclick="goStep(2)"><span class="step-num" id="n2">3</span> Signature</button>
+    <button class="step-tab" onclick="goStep(3)"><span class="step-num" id="n3">4</span> Preview</button>
+    <button class="step-tab" onclick="goStep(4)"><span class="step-num" id="n4">5</span> Send</button>
+  </div>
+
+  <!-- STEP 1: Contacts -->
+  <div class="panel active" id="panel-0">
+    <div class="card">
+      <p class="card-title">Upload contacts</p>
+      <div class="upload-zone" id="drop-zone">
+        <div class="icon">&#128202;</div>
+        <h3>Click to browse or drag &amp; drop</h3>
+        <p>Supports .csv and .xlsx &nbsp;&middot;&nbsp; Must include <strong>Name</strong> and <strong>Email</strong> columns</p>
+        <p style="margin-top:6px;font-size:12px;color:#9ca3af;">All extra columns become merge tags automatically</p>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none;">
+      <div id="file-chosen" style="display:none;" class="file-chosen">
+        <span>&#10003;</span><span id="file-name-display"></span>
+      </div>
+      <div id="upload-error" style="display:none;" class="error-box"></div>
+    </div>
+    <div class="card">
+      <p class="card-title">Or paste CSV text directly</p>
+      <textarea id="csv-paste" placeholder="Name,Email,Company,Product&#10;Alice Smith,alice@acme.com,Acme Corp,Enterprise&#10;Bob Jones,bob@beta.io,Beta Inc,Starter" style="height:100px;resize:vertical;font-family:monospace;font-size:12px;"></textarea>
+      <div style="margin-top:8px;"><button class="btn" onclick="parsePastedCSV()">Parse &amp; Load &#8594;</button></div>
+    </div>
+    <div id="contacts-preview" style="display:none;">
+      <div class="stat-grid" id="contact-stats"></div>
+      <div class="card" style="padding:0;">
+        <div style="padding:14px 16px 8px;"><p class="card-title" style="margin:0;">Loaded contacts</p></div>
+        <div class="table-wrap" id="contacts-table"></div>
+      </div>
+      <div class="nav-row">
+        <span id="col-badges" style="display:flex;gap:6px;flex-wrap:wrap;"></span>
+        <button class="btn btn-primary" onclick="goStep(1)">Next: Compose &#8594;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Compose -->
+  <div class="panel" id="panel-1">
+    <div class="card">
+      <label class="lbl">Email subject line</label>
+      <input type="text" id="email-subject" placeholder="Hi {{Name}}, your {{Product}} update is here!">
+    </div>
+    <div class="card">
+      <!-- Mode toggle tabs -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <p class="card-title" style="margin:0;">Email body</p>
+        <div style="display:flex;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;font-size:13px;">
+          <button id="tab-visual" onclick="switchEditorMode('visual')" style="padding:6px 16px;border:none;background:#1d4ed8;color:#fff;cursor:pointer;font-size:13px;font-weight:500;">&#128065; Visual</button>
+          <button id="tab-html"   onclick="switchEditorMode('html')"   style="padding:6px 16px;border:none;background:#fff;color:#374151;cursor:pointer;font-size:13px;font-weight:500;border-left:1px solid #e5e7eb;">&#60;/&#62; HTML</button>
+        </div>
+      </div>
+
+      <!-- VISUAL editor -->
+      <div id="visual-editor-wrap">
+        <div class="toolbar">
+          <button class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+          <button class="tb-btn" onclick="fmt('italic')"><i>I</i></button>
+          <button class="tb-btn" onclick="fmt('underline')"><u>U</u></button>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="fmt('insertUnorderedList')">&#8226; List</button>
+          <button class="tb-btn" onclick="fmt('insertOrderedList')">1. List</button>
+          <div class="tb-sep"></div>
+          <select id="fsize" onchange="fmt('fontSize',this.value)" style="height:28px;padding:2px 6px;font-size:12px;width:auto;border:1px solid #e5e7eb;">
+            <option value="2">Small</option><option value="3" selected>Normal</option>
+            <option value="4">Large</option><option value="5">XL</option>
+          </select>
+          <input type="color" id="txt-color" value="#000000" onchange="fmt('foreColor',this.value)" style="width:28px;height:28px;border:1px solid #d1d5db;border-radius:5px;padding:2px;cursor:pointer;">
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="insertBodyLink()">&#128279; Link</button>
+          <button class="tb-btn" onclick="document.getElementById('img-upload').click()">&#128444; Image</button>
+          <input type="file" id="img-upload" accept="image/*" style="display:none;" onchange="insertBodyImage(this)">
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="fmt('justifyLeft')">Left</button>
+          <button class="tb-btn" onclick="fmt('justifyCenter')">Center</button>
+          <button class="tb-btn" onclick="fmt('justifyRight')">Right</button>
+        </div>
+        <div class="editor" id="email-body" contenteditable="true">
+          <p>Hi <strong>{{Name}}</strong>,</p>
+          <p>I wanted to personally reach out regarding your <strong>{{Product}}</strong> plan at <strong>{{Company}}</strong>.</p>
+          <p>We have some exciting updates to share with you.</p>
+          <p>Warm regards,</p>
+        </div>
+      </div>
+
+      <!-- HTML source editor -->
+      <div id="html-editor-wrap" style="display:none;">
+        <div style="display:flex;gap:8px;align-items:center;padding:8px 10px;background:#1e1e2e;border-radius:8px 8px 0 0;border:1px solid #374151;border-bottom:none;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#ff5f57;display:inline-block;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#febc2e;display:inline-block;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#28c840;display:inline-block;"></span>
+          <span style="font-size:12px;color:#6b7280;margin-left:6px;">HTML source — merge tags like <code style="color:#a5b4fc;">{{Name}}</code> work here too</span>
+          <span style="flex:1;"></span>
+          <button onclick="formatHtml()" style="padding:3px 10px;font-size:11px;background:#374151;color:#e2e8f0;border:1px solid #4b5563;border-radius:5px;cursor:pointer;">&#10022; Format</button>
+          <button onclick="previewHtmlPane()" style="padding:3px 10px;font-size:11px;background:#374151;color:#e2e8f0;border:1px solid #4b5563;border-radius:5px;cursor:pointer;">&#128065; Preview</button>
+        </div>
+        <textarea id="html-source" spellcheck="false" style="width:100%;height:280px;font-family:monospace;font-size:12px;line-height:1.6;background:#1e1e2e;color:#e2e8f0;border:1px solid #374151;border-radius:0;padding:14px;resize:vertical;outline:none;tab-size:2;"></textarea>
+        <!-- Live HTML preview pane -->
+        <div id="html-preview-pane" style="display:none;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;background:#fff;padding:16px 20px;min-height:120px;line-height:1.7;font-size:14px;max-height:300px;overflow-y:auto;"></div>
+        <div style="padding:8px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:12px;color:#6b7280;">&#128161; Tip: paste any HTML email template here. Use <code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">{{Name}}</code> anywhere to personalise.</span>
+          <button onclick="loadHtmlTemplate()" style="margin-left:auto;padding:4px 12px;font-size:12px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:6px;cursor:pointer;">&#128196; Load starter template</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="mtag-card" style="display:none;">
+      <p class="card-title">Click a merge tag to insert at cursor</p>
+      <div class="merge-tags" id="merge-tags-list"></div>
+      <p class="hint">Each tag is replaced with the contact's data when emails are sent</p>
+    </div>
+    <div class="nav-row">
+      <button class="btn" onclick="goStep(0)">&#8592; Back</button>
+      <button class="btn btn-primary" onclick="goStep(2)">Next: Signature &#8594;</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Signature + Auth -->
+  <div class="panel" id="panel-2">
+    <div class="card">
+      <p class="card-title">Email signature</p>
+      <div class="toolbar">
+        <button class="tb-btn" onclick="fmtSig('bold')"><b>B</b></button>
+        <button class="tb-btn" onclick="fmtSig('italic')"><i>I</i></button>
+        <button class="tb-btn" onclick="fmtSig('underline')"><u>U</u></button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" onclick="insertSigLink()">&#128279; Link</button>
+        <button class="tb-btn" onclick="document.getElementById('sig-logo').click()">&#128444; Logo</button>
+        <input type="file" id="sig-logo" accept="image/*" style="display:none;" onchange="insertSigImage(this)">
+        <input type="color" id="sig-color" value="#1d4ed8" onchange="fmtSig('foreColor',this.value)" style="width:28px;height:28px;border:1px solid #d1d5db;border-radius:5px;padding:2px;cursor:pointer;">
+      </div>
+      <div class="sig-editor" id="sig-body" contenteditable="true">
+        <p style="margin:2px 0;"><strong>Your Full Name</strong> &nbsp;|&nbsp; Senior Account Manager</p>
+        <p style="margin:2px 0;color:#1d4ed8;">your@company.com &nbsp;|&nbsp; +971 50 000 0000</p>
+        <p style="margin:2px 0;font-size:12px;color:#6b7280;">Company Name &middot; www.yourcompany.com</p>
+      </div>
+    </div>
+    <div class="card">
+      <p class="card-title">Microsoft 365 sender details</p>
+      <div class="row2">
+        <div><label class="lbl">Sender email address</label><input type="email" id="sender-email" placeholder="you@yourcompany.com"></div>
+        <div><label class="lbl">Display name</label><input type="text" id="sender-name" placeholder="Your Name"></div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="card-title">Microsoft Graph API &mdash; Access token</p>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 10px;">From Azure AD / MSAL. Requires <code style="background:#f3f4f6;padding:2px 5px;border-radius:4px;">Mail.Send</code> permission. <a href="https://learn.microsoft.com/en-us/graph/auth-v2-user" target="_blank" style="color:#1d4ed8;">How to get a token &#8594;</a></p>
+      <label class="lbl">Access token (Bearer)</label>
+      <textarea id="access-token" placeholder="eyJ0eXAiOiJKV1Qi..." style="height:72px;font-family:monospace;font-size:11px;resize:none;"></textarea>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+        <button class="btn" onclick="testAuth()">&#128272; Verify token</button>
+        <span id="auth-status" style="font-size:13px;"></span>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn" onclick="goStep(1)">&#8592; Back</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Next: Preview &#8594;</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Preview -->
+  <div class="panel" id="panel-3">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="btn" onclick="prevContact()" id="btn-prev" disabled>&#8592; Prev</button>
+      <span id="preview-counter" style="font-size:13px;color:#6b7280;">&mdash;</span>
+      <button class="btn" onclick="nextContact()" id="btn-next">Next &#8594;</button>
+      <span style="flex:1;"></span>
+      <span id="preview-badge" class="badge badge-blue"></span>
+    </div>
+    <div class="preview-email">
+      <div class="preview-header">
+        <div><strong>To:</strong> <span id="prev-to">&mdash;</span></div>
+        <div style="margin-top:3px;"><strong>Subject:</strong> <span id="prev-subject">&mdash;</span></div>
+      </div>
+      <div class="preview-body" id="prev-body"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn" onclick="goStep(2)">&#8592; Back</button>
+      <button class="btn btn-success" onclick="goStep(4)">&#10003; Looks good &mdash; go to Send &#8594;</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Send -->
+  <div class="panel" id="panel-4">
+    <div class="stat-grid">
+      <div class="stat-card"><p class="stat-val" id="s-total">0</p><p class="stat-lbl">Total recipients</p></div>
+      <div class="stat-card" style="background:#f0fdf4;border-color:#bbf7d0;"><p class="stat-val" style="color:#16a34a;" id="s-sent">0</p><p class="stat-lbl">Sent successfully</p></div>
+      <div class="stat-card" style="background:#fef2f2;border-color:#fecaca;"><p class="stat-val" style="color:#dc2626;" id="s-failed">0</p><p class="stat-lbl">Failed</p></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="send-progress" style="width:0%;"></div></div>
+    <div style="display:flex;gap:8px;align-items:center;margin:14px 0;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btn-send" onclick="startSend()">&#128228; Send all emails</button>
+      <button class="btn btn-danger" id="btn-stop" onclick="stopSend()" disabled>&#9209; Stop</button>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#374151;margin:0;">
+        <input type="checkbox" id="test-mode" checked style="width:auto;">
+        Test mode <span style="color:#9ca3af;">(simulates &mdash; no real emails sent)</span>
+      </label>
+    </div>
+    <p class="card-title">Send log</p>
+    <div class="send-log" id="send-log"><div style="color:#9ca3af;">Ready. Click "Send all emails" to begin.</div></div>
+    <div class="nav-row">
+      <button class="btn" onclick="goStep(3)">&#8592; Back to preview</button>
+      <button class="btn" onclick="exportLog()">&#8595; Export log</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== STATE ===== */
+var contacts = [], columns = [], curPreview = 0, sendStopped = false, savedRange = null, logEntries = [];
+
+/* ===== STEP NAVIGATION ===== */
+function goStep(n) {
+  document.querySelectorAll('.panel').forEach(function(p,i){ p.classList.toggle('active', i===n); });
+  document.querySelectorAll('.step-tab').forEach(function(t,i){
+    t.classList.remove('active','done');
+    if (i===n) t.classList.add('active');
+    else if (i<n) t.classList.add('done');
+  });
+  if (n===3) buildPreview();
+  if (n===4) initSendPanel();
+}
+
+/* ===== FILE UPLOAD SETUP ===== */
+(function() {
+  var zone = document.getElementById('drop-zone');
+  var input = document.getElementById('file-input');
+  zone.addEventListener('click', function(){ input.click(); });
+  input.addEventListener('change', function(){ if (this.files && this.files[0]) handleFile(this.files[0]); });
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); e.stopPropagation(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', function(e){ e.preventDefault(); zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', function(e){
+    e.preventDefault(); e.stopPropagation(); zone.classList.remove('drag-over');
+    var f = e.dataTransfer.files[0]; if (f) handleFile(f);
+  });
+})();
+
+function showFileChosen(name) {
+  document.getElementById('file-chosen').style.display = 'flex';
+  document.getElementById('file-name-display').textContent = name;
+  document.getElementById('upload-error').style.display = 'none';
+}
+function showUploadError(msg) {
+  var el = document.getElementById('upload-error');
+  el.style.display = 'block'; el.textContent = '\u26a0 ' + msg;
+  document.getElementById('file-chosen').style.display = 'none';
+}
+
+function handleFile(file) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  showFileChosen(file.name);
+  if (ext === 'csv') {
+    var r = new FileReader();
+    r.onerror = function(){ showUploadError('Could not read the file.'); };
+    r.onload = function(e){ parseCSV(e.target.result); };
+    r.readAsText(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    var r2 = new FileReader();
+    r2.onerror = function(){ showUploadError('Could not read Excel file. Try saving it as CSV first.'); };
+    r2.onload = function(e){
+      try {
+        var csv = xlsxBufferToCsv(e.target.result);
+        if (!csv) { showUploadError('Could not parse the Excel file. Please save it as .csv and re-upload.'); return; }
+        parseCSV(csv);
+      } catch(err) {
+        showUploadError('Excel parse error: ' + err.message + '. Try saving as .csv instead.');
+      }
+    };
+    r2.readAsArrayBuffer(file);
+  } else {
+    showUploadError('Unsupported file type ".' + ext + '". Please use .csv or .xlsx');
+  }
+}
+
+/* ===== XLSX PARSER (no external library) ===== */
+function xlsxBufferToCsv(buffer) {
+  var bytes = new Uint8Array(buffer);
+  var zip = parseZip(bytes);
+  if (!zip) return null;
+
+  // Shared strings
+  var sharedStrings = [];
+  var ssKey = Object.keys(zip).find(function(k){ return /xl[\/\\]sharedStrings\.xml$/i.test(k); });
+  if (ssKey) {
+    var ssXml = uint8ToString(zip[ssKey]);
+    var siList = ssXml.match(/<si[\s\S]*?<\/si>/g) || [];
+    sharedStrings = siList.map(function(si){
+      var parts = si.match(/<t[^>]*>([^<]*)<\/t>/g) || [];
+      return parts.map(function(t){ return t.replace(/<t[^>]*>/,'').replace(/<\/t>/,''); }).join('');
+    }).map(xmlDecode);
+  }
+
+  // Find sheet1
+  var sheetKey = Object.keys(zip).find(function(k){ return /xl[\/\\]worksheets[\/\\]sheet1\.xml$/i.test(k); });
+  if (!sheetKey) sheetKey = Object.keys(zip).find(function(k){ return /xl[\/\\]worksheets[\/\\]sheet\d+\.xml$/i.test(k); });
+  if (!sheetKey) return null;
+  var sheetXml = uint8ToString(zip[sheetKey]);
+
+  // Parse rows
+  var rowsHtml = sheetXml.match(/<row[^>]*>[\s\S]*?<\/row>/g) || [];
+  var grid = [];
+  rowsHtml.forEach(function(rowHtml){
+    var cellMatches = rowHtml.match(/<c [^>]*>[\s\S]*?<\/c>/g) || [];
+    if (!cellMatches.length) return;
+    var rowObj = {};
+    cellMatches.forEach(function(cell){
+      var refM = cell.match(/\br="([A-Z]+)\d+"/);
+      if (!refM) return;
+      var colIdx = colLetterToIndex(refM[1]);
+      var typeM = cell.match(/\bt="([^"]+)"/);
+      var vM = cell.match(/<v>([^<]*)<\/v>/);
+      var val = '';
+      if (vM) {
+        if (typeM && typeM[1] === 's') val = sharedStrings[parseInt(vM[1])] || '';
+        else val = xmlDecode(vM[1]);
+      } else {
+        var isM = cell.match(/<is>[\s\S]*?<t>([^<]*)<\/t>/);
+        if (isM) val = xmlDecode(isM[1]);
+      }
+      rowObj[colIdx] = val;
+    });
+    grid.push(rowObj);
+  });
+  if (!grid.length) return null;
+
+  var maxCol = 0;
+  grid.forEach(function(r){ Object.keys(r).forEach(function(k){ if (parseInt(k) > maxCol) maxCol = parseInt(k); }); });
+
+  return grid.map(function(r){
+    var arr = [];
+    for (var i = 0; i <= maxCol; i++) arr.push(r[i] || '');
+    return arr.map(csvEscape).join(',');
+  }).join('\n');
+}
+
+function uint8ToString(bytes) {
+  var out = '';
+  for (var i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
+  return out;
+}
+function xmlDecode(s) { return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'"); }
+function csvEscape(v) { var s=String(v); return (s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function colLetterToIndex(l) { var n=0; for(var i=0;i<l.length;i++) n=n*26+(l.charCodeAt(i)-64); return n-1; }
+
+function parseZip(bytes) {
+  var files = {};
+  var i = 0;
+  while (i < bytes.length - 4) {
+    if (bytes[i]===0x50 && bytes[i+1]===0x4B && bytes[i+2]===0x03 && bytes[i+3]===0x04) {
+      var flags      = bytes[i+6] | (bytes[i+7]<<8);
+      var method     = bytes[i+8] | (bytes[i+9]<<8);
+      var compSz     = bytes[i+18]|(bytes[i+19]<<8)|(bytes[i+20]<<16)|(bytes[i+21]<<24);
+      var uncompSz   = bytes[i+22]|(bytes[i+23]<<8)|(bytes[i+24]<<16)|(bytes[i+25]<<24);
+      var fnLen      = bytes[i+26]|(bytes[i+27]<<8);
+      var extraLen   = bytes[i+28]|(bytes[i+29]<<8);
+      var fname = ''; for(var j=0;j<fnLen;j++) fname += String.fromCharCode(bytes[i+30+j]);
+      var dataStart  = i + 30 + fnLen + extraLen;
+      var compData   = bytes.slice(dataStart, dataStart + compSz);
+      if (method === 0) {
+        files[fname] = compData;
+      } else if (method === 8) {
+        files[fname] = rawInflate(compData);
+      }
+      i = dataStart + Math.max(compSz, 0);
+    } else { i++; }
+  }
+  return Object.keys(files).length ? files : null;
+}
+
+function rawInflate(src) {
+  var si=0, bi=0;
+  var out=[];
+
+  function bits(n){ var v=0; for(var j=0;j<n;j++){ if(bi===8){si++;bi=0;} v|=((src[si]>>bi)&1)<<j; bi++; } return v; }
+
+  var FLL=[]; for(var q=0;q<144;q++)FLL[q]=8; for(var q=144;q<256;q++)FLL[q]=9; for(var q=256;q<280;q++)FLL[q]=7; for(var q=280;q<288;q++)FLL[q]=8;
+  var FDL=[]; for(var q=0;q<32;q++)FDL[q]=5;
+
+  function buildTree(lens){
+    var ml=0; for(var x=0;x<lens.length;x++) if(lens[x]>ml) ml=lens[x];
+    var cnt=new Array(ml+1).fill(0); for(var x=0;x<lens.length;x++) if(lens[x]) cnt[lens[x]]++;
+    var nc=new Array(ml+1).fill(0); var c=0;
+    for(var l=1;l<=ml;l++){c=(c+cnt[l-1])<<1; nc[l]=c;}
+    var tbl={};
+    for(var x=0;x<lens.length;x++){
+      var l=lens[x]; if(!l) continue;
+      var code=nc[l].toString(2).padStart(l,'0').split('').reverse().join('');
+      tbl[code]=x; nc[l]++;
+    }
+    return {tbl:tbl, ml:ml};
+  }
+
+  function sym(t){
+    var code='';
+    for(var j=0;j<t.ml;j++){ code+=bits(1); if(t.tbl[code]!==undefined) return t.tbl[code]; }
+    return -1;
+  }
+
+  var LB=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+  var LE=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  var DB=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+  var DE=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+
+  try {
+    var bfinal=0;
+    while(!bfinal) {
+      bfinal=bits(1); var btype=bits(2);
+      if(btype===0){
+        bi=0; si++;
+        var len=src[si]|(src[si+1]<<8); si+=4;
+        for(var j=0;j<len;j++) out.push(src[si++]);
+      } else {
+        var lt, dt;
+        if(btype===1){ lt=buildTree(FLL); dt=buildTree(FDL); }
+        else {
+          var hlit=bits(5)+257, hdist=bits(5)+1, hclen=bits(4)+4;
+          var CLO=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+          var cll=new Array(19).fill(0); for(var j=0;j<hclen;j++) cll[CLO[j]]=bits(3);
+          var clt=buildTree(cll); var lens=[]; var li=0;
+          while(li<hlit+hdist){
+            var s2=sym(clt);
+            if(s2<16){lens.push(s2);li++;}
+            else if(s2===16){var rep=bits(2)+3; for(var j=0;j<rep;j++){lens.push(lens[lens.length-1]);li++;}}
+            else if(s2===17){var rep=bits(3)+3; for(var j=0;j<rep;j++){lens.push(0);li++;}}
+            else{var rep=bits(7)+11; for(var j=0;j<rep;j++){lens.push(0);li++;}}
+          }
+          lt=buildTree(lens.slice(0,hlit)); dt=buildTree(lens.slice(hlit));
+        }
+        while(true){
+          var s3=sym(lt);
+          if(s3<256){ out.push(s3); }
+          else if(s3===256){ break; }
+          else {
+            var li2=s3-257;
+            var length=LB[li2]+bits(LE[li2]);
+            var di=sym(dt);
+            var dist=DB[di]+bits(DE[di]);
+            var pos=out.length-dist;
+            for(var j=0;j<length;j++) out.push(out[pos++]);
+          }
+        }
+      }
+    }
+  } catch(e) { /* return partial */ }
+  return new Uint8Array(out);
+}
+
+/* ===== CSV PARSING ===== */
+function parsePastedCSV() { parseCSV(document.getElementById('csv-paste').value.trim()); }
+
+function parseCSVLine(line) {
+  var res=[], cur='', inQ=false;
+  for(var i=0;i<line.length;i++){
+    var ch=line[i];
+    if(ch==='"'){ if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ; }
+    else if(ch===','&&!inQ){res.push(cur);cur='';}
+    else cur+=ch;
+  }
+  res.push(cur); return res;
+}
+
+function parseCSV(text) {
+  text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  var lines = text.trim().split('\n').filter(function(l){ return l.trim(); });
+  if(lines.length<2){ showUploadError('Need at least a header row and one data row.'); return; }
+  columns = parseCSVLine(lines[0]).map(function(c){ return c.trim(); });
+  contacts = lines.slice(1).map(function(line){
+    var vals = parseCSVLine(line); var obj={};
+    columns.forEach(function(c,i){ obj[c]=(vals[i]||'').trim(); });
+    return obj;
+  });
+  var ef = emailField();
+  contacts = contacts.filter(function(c){ return c[ef] && c[ef].indexOf('@')>0; });
+  if(!contacts.length){ showUploadError('No valid emails found. Make sure a column is named "Email".'); return; }
+  renderContactsPanel();
+  buildMergeTags();
+}
+
+function emailField(){ return columns.find(function(c){return c.toLowerCase()==='email';})||columns.find(function(c){return c.toLowerCase().indexOf('mail')>=0;})||columns[1]||'Email'; }
+function nameField(){ return columns.find(function(c){return c.toLowerCase()==='name';})||columns[0]||'Name'; }
+
+function renderContactsPanel() {
+  var ef=emailField(); var valid=contacts.filter(function(c){return c[ef]&&c[ef].indexOf('@')>0;}).length;
+  document.getElementById('contact-stats').innerHTML=
+    '<div class="stat-card"><p class="stat-val">'+contacts.length+'</p><p class="stat-lbl">Total contacts</p></div>'+
+    '<div class="stat-card"><p class="stat-val">'+columns.length+'</p><p class="stat-lbl">Merge fields</p></div>'+
+    '<div class="stat-card" style="background:#f0fdf4;border-color:#bbf7d0;"><p class="stat-val" style="color:#16a34a;">'+valid+'</p><p class="stat-lbl">Valid emails</p></div>';
+  var th=columns.map(function(c){return '<th>'+escH(c)+'</th>';}).join('');
+  var rows=contacts.slice(0,100).map(function(c){return '<tr>'+columns.map(function(col){return '<td>'+escH(c[col]||'')+'</td>';}).join('')+'</tr>';}).join('');
+  document.getElementById('contacts-table').innerHTML='<table><thead><tr>'+th+'</tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('contacts-preview').style.display='block';
+  document.getElementById('col-badges').innerHTML=columns.map(function(c){return '<span class="badge badge-blue">{{'+c+'}}</span>';}).join('');
+}
+function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ===== MERGE TAGS ===== */
+function buildMergeTags() {
+  if(!columns.length){document.getElementById('mtag-card').style.display='none';return;}
+  document.getElementById('mtag-card').style.display='block';
+  document.getElementById('merge-tags-list').innerHTML=columns.map(function(c){return '<span class="mtag" onclick="insertMergeTag(\'{{'+c+'}}\')">'+'{{'+c+'}}'+'</span>';}).join('');
+}
+
+function saveRange(){ var s=window.getSelection(); if(s&&s.rangeCount) savedRange=s.getRangeAt(0).cloneRange(); }
+var edEl = document.getElementById('email-body');
+if(edEl){['keyup','mouseup','blur'].forEach(function(ev){edEl.addEventListener(ev,saveRange);});}
+
+/* ===== EDITOR MODE (visual / html) ===== */
+var editorMode = 'visual';
+
+function switchEditorMode(mode) {
+  if (mode === editorMode) return;
+  if (mode === 'html') {
+    // copy visual -> html source
+    document.getElementById('html-source').value = document.getElementById('email-body').innerHTML;
+    document.getElementById('html-preview-pane').style.display = 'none';
+    document.getElementById('visual-editor-wrap').style.display = 'none';
+    document.getElementById('html-editor-wrap').style.display = 'block';
+    document.getElementById('tab-html').style.background = '#1d4ed8';
+    document.getElementById('tab-html').style.color = '#fff';
+    document.getElementById('tab-visual').style.background = '#fff';
+    document.getElementById('tab-visual').style.color = '#374151';
+  } else {
+    // copy html source -> visual
+    var src = document.getElementById('html-source').value;
+    document.getElementById('email-body').innerHTML = src;
+    document.getElementById('html-editor-wrap').style.display = 'none';
+    document.getElementById('visual-editor-wrap').style.display = 'block';
+    document.getElementById('tab-visual').style.background = '#1d4ed8';
+    document.getElementById('tab-visual').style.color = '#fff';
+    document.getElementById('tab-html').style.background = '#fff';
+    document.getElementById('tab-html').style.color = '#374151';
+  }
+  editorMode = mode;
+}
+
+function getBodyHTML() {
+  if (editorMode === 'html') return document.getElementById('html-source').value;
+  return document.getElementById('email-body').innerHTML;
+}
+
+function previewHtmlPane() {
+  var pane = document.getElementById('html-preview-pane');
+  var src  = document.getElementById('html-source').value;
+  var sample = contacts.length ? contacts[0] : {};
+  var merged = mergeContactRaw(src, sample);
+  if (pane.style.display === 'none') {
+    pane.innerHTML = merged;
+    pane.style.display = 'block';
+  } else {
+    pane.style.display = 'none';
+  }
+}
+
+function formatHtml() {
+  var ta = document.getElementById('html-source');
+  try {
+    var html = ta.value;
+    // Simple indentation formatter
+    var indent = 0;
+    var formatted = '';
+    var lines = html.replace(/>\s*</g,'>\n<').split('\n');
+    lines.forEach(function(line){
+      line = line.trim();
+      if (!line) return;
+      if (/^<\//.test(line)) indent = Math.max(0, indent-1);
+      formatted += '  '.repeat(indent) + line + '\n';
+      if (/^<[^\/!][^>]*[^\/]>$/.test(line) && !/^<(br|hr|img|input|meta|link)/i.test(line)) indent++;
+    });
+    ta.value = formatted.trim();
+  } catch(e) {}
+}
+
+function loadHtmlTemplate() {
+  document.getElementById('html-source').value = [
+'<!DOCTYPE html>',
+'<html>',
+'<head>',
+'  <meta charset="UTF-8">',
+'  <meta name="viewport" content="width=device-width,initial-scale=1.0">',
+'  <style>',
+'    body { margin:0; padding:0; background:#f4f4f5; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }',
+'    .wrapper { max-width:600px; margin:0 auto; background:#ffffff; border-radius:8px; overflow:hidden; }',
+'    .header { background:#1d4ed8; padding:32px 40px; text-align:center; }',
+'    .header h1 { color:#ffffff; margin:0; font-size:24px; font-weight:700; }',
+'    .body { padding:32px 40px; color:#374151; font-size:15px; line-height:1.7; }',
+'    .body h2 { color:#1d4ed8; font-size:18px; margin:0 0 12px; }',
+'    .cta { display:inline-block; margin:20px 0; padding:12px 28px; background:#1d4ed8; color:#ffffff !important;',
+'           text-decoration:none; border-radius:8px; font-weight:600; font-size:15px; }',
+'    .divider { border:none; border-top:1px solid #e5e7eb; margin:24px 0; }',
+'    .footer { background:#f9fafb; padding:20px 40px; text-align:center; font-size:12px; color:#9ca3af; }',
+'  </style>',
+'</head>',
+'<body>',
+'  <div style="padding:24px;">',
+'    <div class="wrapper">',
+'      <div class="header">',
+'        <h1>Your Company Name</h1>',
+'      </div>',
+'      <div class="body">',
+'        <h2>Hi {{Name}},</h2>',
+'        <p>We have an exciting update for your <strong>{{Product}}</strong> account at <strong>{{Company}}</strong>.</p>',
+'        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque euismod, urna eu tincidunt consectetur.</p>',
+'        <a href="https://yourcompany.com" class="cta">View Your Account &rarr;</a>',
+'        <hr class="divider">',
+'        <p style="font-size:13px;color:#6b7280;">Questions? Reply to this email or contact us at support@yourcompany.com</p>',
+'      </div>',
+'      <div class="footer">',
+'        &copy; 2025 Your Company &nbsp;&middot;&nbsp; <a href="#" style="color:#6b7280;">Unsubscribe</a>',
+'      </div>',
+'    </div>',
+'  </div>',
+'</body>',
+'</html>'
+  ].join('\n');
+  document.getElementById('html-preview-pane').style.display = 'none';
+}
+
+/* ===== MERGE TAG INSERT — works in both modes ===== */
+function insertMergeTag(tag) {
+  if (editorMode === 'html') {
+    var ta = document.getElementById('html-source');
+    var start = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.substring(0,start) + tag + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + tag.length;
+    ta.focus();
+  } else {
+    var ed=document.getElementById('email-body'); ed.focus();
+    if(savedRange){var s=window.getSelection();s.removeAllRanges();s.addRange(savedRange);}
+    document.execCommand('insertText',false,tag); savedRange=null;
+  }
+}
+
+/* ===== EDITOR HELPERS ===== */
+function fmt(cmd,val){ document.getElementById('email-body').focus(); document.execCommand(cmd,false,val||null); }
+function fmtSig(cmd,val){ document.getElementById('sig-body').focus(); document.execCommand(cmd,false,val||null); }
+function insertBodyLink(){ var u=prompt('URL:'); if(u){document.getElementById('email-body').focus();document.execCommand('createLink',false,u);} }
+function insertSigLink(){ var u=prompt('URL:'); if(u){document.getElementById('sig-body').focus();document.execCommand('createLink',false,u);} }
+function insertBodyImage(inp){ var f=inp.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(e){document.getElementById('email-body').focus();document.execCommand('insertHTML',false,'<img src="'+e.target.result+'" style="max-width:100%;border-radius:6px;margin:8px 0;">');}; r.readAsDataURL(f); inp.value=''; }
+function insertSigImage(inp){ var f=inp.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(e){document.getElementById('sig-body').focus();document.execCommand('insertHTML',false,'<img src="'+e.target.result+'" style="max-height:60px;margin-top:6px;">');}; r.readAsDataURL(f); inp.value=''; }
+
+/* ===== PREVIEW ===== */
+function mergeContactRaw(tpl,c){ var s=tpl; for(var k in c) s=s.split('{{'+k+'}}').join(c[k]||''); return s; }
+function mergeContact(tpl,c){ return mergeContactRaw(tpl,c); }
+function buildEmailHTML(c){
+  var body = mergeContactRaw(getBodyHTML(), c);
+  var sig  = document.getElementById('sig-body').innerHTML;
+  // If HTML mode and has full html/body tags, inject signature before </body>
+  if (editorMode === 'html' && /<\/body>/i.test(body)) {
+    return body.replace(/<\/body>/i, '<br><hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;"><div>'+sig+'</div></body>');
+  }
+  return body+'<br><hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;"><div>'+sig+'</div>';
+}
+
+function buildPreview(){
+  if(!contacts.length){document.getElementById('prev-body').innerHTML='<em style="color:#9ca3af;">No contacts loaded.</em>';return;}
+  curPreview=Math.max(0,Math.min(curPreview,contacts.length-1));
+  var c=contacts[curPreview]; var ef=emailField(); var nf=nameField();
+  document.getElementById('prev-to').textContent=(c[nf]||'')+' <'+(c[ef]||'')+'>';
+  document.getElementById('prev-subject').textContent=mergeContact(document.getElementById('email-subject').value||'(no subject)',c);
+  document.getElementById('prev-body').innerHTML=buildEmailHTML(c);
+  document.getElementById('preview-counter').textContent='Contact '+(curPreview+1)+' of '+contacts.length;
+  document.getElementById('preview-badge').textContent=c[ef]||'';
+  document.getElementById('btn-prev').disabled=curPreview===0;
+  document.getElementById('btn-next').disabled=curPreview===contacts.length-1;
+}
+function prevContact(){ curPreview--; buildPreview(); }
+function nextContact(){ curPreview++; buildPreview(); }
+
+/* ===== AUTH ===== */
+async function testAuth(){
+  var token=document.getElementById('access-token').value.trim(); var el=document.getElementById('auth-status');
+  if(!token){el.textContent='\u26a0 Enter a token first';el.style.color='#d97706';return;}
+  el.textContent='Verifying\u2026';el.style.color='#6b7280';
+  try{
+    var res=await fetch('https://graph.microsoft.com/v1.0/me',{headers:{Authorization:'Bearer '+token}});
+    if(res.ok){
+      var d=await res.json();
+      el.textContent='\u2705 Signed in as '+(d.displayName||d.mail||'user'); el.style.color='#16a34a';
+      if(d.mail&&!document.getElementById('sender-email').value) document.getElementById('sender-email').value=d.mail;
+      if(d.displayName&&!document.getElementById('sender-name').value) document.getElementById('sender-name').value=d.displayName;
+    }else{el.textContent='\u274c Auth failed (HTTP '+res.status+')';el.style.color='#dc2626';}
+  }catch(e){el.textContent='\u274c Network error \u2014 check token & CORS';el.style.color='#dc2626';}
+}
+
+/* ===== SEND PANEL ===== */
+function initSendPanel(){
+  document.getElementById('s-total').textContent=contacts.length;
+  document.getElementById('s-sent').textContent=0;
+  document.getElementById('s-failed').textContent=0;
+  document.getElementById('send-progress').style.width='0%';
+  document.getElementById('send-log').innerHTML='<div style="color:#9ca3af;">Ready. Click "Send all emails" to begin.</div>';
+  logEntries.length=0;
+}
+
+async function sendOne(c,token,testMode){
+  var ef=emailField(); var addr=c[ef];
+  var subject=mergeContact(document.getElementById('email-subject').value||'(no subject)',c);
+  var html=buildEmailHTML(c);
+  if(testMode){await new Promise(function(r){setTimeout(r,200+Math.random()*150);});return{ok:true,simulated:true};}
+  var senderEmail=document.getElementById('sender-email').value.trim();
+  var url=senderEmail?'https://graph.microsoft.com/v1.0/users/'+encodeURIComponent(senderEmail)+'/sendMail':'https://graph.microsoft.com/v1.0/me/sendMail';
+  var payload={message:{subject:subject,body:{contentType:'HTML',content:html},toRecipients:[{emailAddress:{address:addr}}]},saveToSentItems:true};
+  var res=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  return{ok:res.status===202,status:res.status};
+}
+
+function appendLog(msg,type){
+  logEntries.push({msg:msg,type:type,time:new Date().toLocaleTimeString()});
+  var log=document.getElementById('send-log');
+  var icons={ok:'\u2705',err:'\u274c',info:'\u2139\ufe0f'};
+  if(log.children[0]&&log.children[0].textContent.indexOf('Ready')>=0) log.innerHTML='';
+  var el=document.createElement('div'); el.className='log-line';
+  el.innerHTML='<span>'+(icons[type]||'\u2139\ufe0f')+'</span><span style="color:#9ca3af;min-width:58px;font-size:11px;">'+new Date().toLocaleTimeString()+'</span><span>'+escH(msg)+'</span>';
+  log.appendChild(el); log.scrollTop=log.scrollHeight;
+}
+
+async function startSend(){
+  if(!contacts.length){appendLog('No contacts loaded.','err');return;}
+  var token=document.getElementById('access-token').value.trim();
+  var testMode=document.getElementById('test-mode').checked;
+  if(!testMode&&!token){appendLog('Enter an access token in Step 3 first.','err');return;}
+  sendStopped=false;
+  document.getElementById('btn-send').disabled=true;
+  document.getElementById('btn-stop').disabled=false;
+  logEntries.length=0; document.getElementById('send-log').innerHTML='';
+  var ef=emailField(); var sent=0, failed=0;
+  for(var i=0;i<contacts.length;i++){
+    if(sendStopped){appendLog('Sending stopped by user.','info');break;}
+    var c=contacts[i]; var addr=c[ef];
+    if(!addr||addr.indexOf('@')<0){appendLog('Row '+(i+1)+': invalid email "'+addr+'" \u2014 skipped','err');failed++;continue;}
+    try{
+      var r=await sendOne(c,token,testMode);
+      if(r.ok){sent++;appendLog(addr+(r.simulated?' (test \u2014 not actually sent)':''),'ok');}
+      else{failed++;appendLog(addr+' \u2014 HTTP '+r.status,'err');}
+    }catch(e){failed++;appendLog(addr+' \u2014 '+e.message,'err');}
+    document.getElementById('s-sent').textContent=sent;
+    document.getElementById('s-failed').textContent=failed;
+    document.getElementById('send-progress').style.width=Math.round(((i+1)/contacts.length)*100)+'%';
+    if(!testMode) await new Promise(function(r){setTimeout(r,300);});
+  }
+  appendLog('Done. '+sent+' sent, '+failed+' failed.','info');
+  document.getElementById('btn-send').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+}
+function stopSend(){ sendStopped=true; document.getElementById('btn-stop').disabled=true; }
+
+function exportLog(){
+  var lines=logEntries.map(function(e){return '['+e.time+'] ['+e.type.toUpperCase()+'] '+e.msg;}).join('\n');
+  var a=document.createElement('a'); a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(lines);
+  a.download='mail_merge_log.txt'; a.click();
+}
+</script>
+</body>
+</html>
